@@ -1,6 +1,6 @@
 {
   "name": "@jlekie/git-laminar-flow-plugin-csharp",
-  "version": "1.0.0-alpha.5",
+  "version": "1.0.0-alpha.6",
   "license": "UNLICENSED",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,7 @@
     "@jlekie/git-laminar-flow-cli": "workspace:*",
     "bluebird": "^3.7.2",
     "chalk": "^4.1.2",
-    "clipanion": "^3.2.0-rc.10",
+    "clipanion": "^3.2.0-rc.11",
     "fs-extra": "^10.0.1",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
