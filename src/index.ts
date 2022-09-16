@@ -14,7 +14,7 @@ const createPlugin: PluginHandler = (options) => {
 
     return {
         updateVersion: async (oldVersion, newVersion, { config, stdout, dryRun }) => {
-            const versionRegex = new RegExp(`<Version>${oldVersion ?? '(.*)'}</Version>`);
+            const versionRegex = new RegExp(`<Version>(.*)</Version>`);
             const projectPath = Path.resolve(config.path, parsedOptions.projectPath);
 
             let content = await FS.readFile(projectPath, 'utf8');
@@ -37,7 +37,7 @@ const createPlugin: PluginHandler = (options) => {
                         continue;
 
                     const matchedPluginOptions = OptionsSchema.parse(matchedPlugin.options);
-                    const versionRegex = new RegExp(`(<PackageReference.*Include="${parsedOptions.packageId}".*Version=")(${oldVersion ?? '.*'})(".*>)`);
+                    const versionRegex = new RegExp(`(<PackageReference.*Include="${parsedOptions.packageId}".*Version=")(.*)(".*>)`);
                     // const versionRegex = new RegExp(`(<PackageReference.*Include="${parsedOptions.packageId}".*Version=")(.*)(".*>)`);
 
                     const projectPath = Path.resolve(submodule.config.path, matchedPluginOptions.projectPath);
