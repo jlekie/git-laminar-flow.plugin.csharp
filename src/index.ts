@@ -118,6 +118,68 @@ const createPlugin: PluginHandler = (options) => {
                         await rootConfig.exec(`dotnet sln ${solutionName}.sln add --in-root ${relativePath}`, { stdout: this.context.stdout, dryRun: this.dryRun });
                     }
                 }
+            },
+            class GenerateBuildProjectCommand extends BaseInteractiveCommand {
+                static paths = [['vs', 'create', 'build-project']];
+
+                include = Option.Array('--include');
+                exclude = Option.Array('--exclude');
+
+                static usage = Command.Usage({
+                    description: 'Create a new build project from repo checkouts',
+                    category: "Visual Studio"
+                });
+
+                public async executeCommand() {
+                    const rootConfig = await this.loadConfig();
+                    const allConfigs = rootConfig.flattenConfigs();
+                    const targetConfigs = await rootConfig.resolveFilteredConfigs({
+                        included: this.include,
+                        excluded: this.exclude
+                    });
+
+                    const projectName = await this.createOverridablePrompt('name', value => Zod.string().nonempty().parse(value), {
+                        type: 'text',
+                        message: 'Project Name'
+                    });
+                    const projectPath = Path.resolve(rootConfig.path, `${projectName}.proj`);
+
+                    // const configs = await this.createOverridablePrompt('configs', value => Zod.string().array().transform(ids => _(ids).map(id => allConfigs.find(c => c.identifier === id)).compact().value()).parse(value), (initial) => ({
+                    //     type: 'multiselect',
+                    //     message: 'Select Modules',
+                    //     choices: allConfigs.map(c => ({ title: c.pathspec, value: c.identifier, selected: initial?.some(tc => tc === c.identifier) }))
+                    // }), {
+                    //     defaultValue: targetConfigs.map(c => c.identifier)
+                    // });
+
+                    const targets = await Bluebird.map(rootConfig.submodules, submodule => _(submodule.config.integrations)
+                            .filter(i => i.plugin === '@jlekie/git-laminar-flow-plugin-csharp')
+                            .map(i => OptionsSchema.parse(i.options))
+                            .map(i => i.projectPath)
+                            .compact()
+                            .map(i => Path.relative(rootConfig.path, Path.join(submodule.config.path, i)).replaceAll('\\', '/'))
+                            .value())
+                        .then(i => _.flatten(i));
+
+                    const projects = await this.createOverridablePrompt('projects', value => Zod.string().array().parse(value), (initial) => ({
+                        type: 'multiselect',
+                        message: 'Select Projects',
+                        choices: targets.map(c => ({ title: c, value: c, selected: true }))
+                    }), {
+                        defaultValue: targets
+                    });
+                    console.log(projects)
+
+                    const writeStream = FS.createWriteStream(projectPath);
+                    writeStream.write('<Project Sdk="Microsoft.Build.Traversal">\n');
+                    writeStream.write('    <ItemGroup>\n');
+                    for (const project of projects) {
+                        writeStream.write(`        <ProjectReference Include="${project}" />\n`);
+                    }
+                    writeStream.write('    </ItemGroup>\n');
+                    writeStream.write('</Project>\n');
+                    writeStream.close();
+                }
             }
         ]
     }
